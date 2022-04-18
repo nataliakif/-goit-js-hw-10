@@ -1,6 +1,7 @@
 import './css/styles.css';
 import debounce from 'lodash.debounce';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
+import API from './fetchCountries'
 
 const DEBOUNCE_DELAY = 300;
 
@@ -8,35 +9,54 @@ const input = document.querySelector('#search-box');
 const countryList = document.querySelector('.country-list');
 const countryInfo = document.querySelector('.country-info');  
 
-input.addEventListener('input',onInputChange);
+input.addEventListener('input',debounce(onInputChange, DEBOUNCE_DELAY));
 function onInputChange(event){
-//    if(!event.currentTarget.value){
-//        return refs.outputEl.textContent = 
-//    } 
-  
-   const name =event.currentTarget.value;
-   fetchCountries(name)
+    countryList.innerHTML = '';
+   countryInfo.innerHTML = '';
+   const name = input.value.trim();
+   if(name){
+   API.fetchCountries(name)
    .then(renderCountryCard)
-   
    .catch(error=>{
        console.log(error);
        Notify.failure('Oops, there is no country with that name');
    });
 }
-
-
-function fetchCountries(name){
-   return fetch(`https://restcountries.com/v3.1/name/${name}?fields=name,capital,population,flags,languages`)
-    .then(response =>{
-    return response.json();
-})
-};
-
-
+}
 function renderCountryCard(country){
-        console.log(country);
+    console.log(country.length)
         if(country.length>10){
-            Notify.info('Too many matches found. Please enter a more specific name.');
+           return  Notify.info('Too many matches found. Please enter a more specific name.'); 
         }
-        const markup = countryCardTpl(country);
+        return markupCountries(country);
+    }
+
+     
+function markupCountries (country){
+    if(country.length === 1){
+        console.log('country')
+        markupCountry(country);
+    } else{
+        console.log(country.flags)
+       
+    const markupInfo = country
+    .map((c) => {
+        return `<li><img src="${c.flags.svg}" width="60" height="20"/>${c.name.official}</li>`;
+      })
+      .join('');
+      return countryList.insertAdjacentHTML('afterbegin', markupInfo);
+    }
+   
+}
+
+function markupCountry(country){
+   
+    const markupInfo = country
+    .map((c) => {return `<ul><li><img src="${c.flags.svg}" width="100" height="50" class="flag_image"/>${c.name.official}</li>
+        <li>Capital: ${c.capital}</li>
+    <li>Population: ${c.population}</li>
+    <li>Languages: ${Object.values(c.languages)}</li>
+    </ul>`;
+      });  
+   return countryInfo.insertAdjacentHTML('afterbegin', markupInfo);
 }
